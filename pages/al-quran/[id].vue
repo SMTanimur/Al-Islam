@@ -1,0 +1,265 @@
+<script setup lang="ts">
+// Interfaces
+import type { ISurah, IVerse, IBeforeNextSurah } from 'models/ISurah'
+interface ITafsir {
+  ayat: number
+  teks: string
+}
+
+// Router
+const route = useRoute()
+const router = useRouter()
+
+// Ref
+const bottomVerseList = ref(null)
+
+// Variable
+const finishSetDataChunk = ref<boolean>(false)
+const masterVerseList = ref<IVerse[]>([])
+const chunkPage = ref<number>(1)
+const verseChunk = ref<Array<IVerse[]>>([])
+const verseList = ref<IVerse[]>([])
+const showModalDetail = ref<boolean>(false)
+const showModalTafsir = ref<boolean>(false)
+const showListSurah = ref<boolean>(false)
+const tafsirSelected = ref<ITafsir | null>(null)
+
+// Composables
+useInfiniteScrolling(
+  bottomVerseList,
+  () => {
+    // load more
+    if (chunkPage.value !== verseChunk.value.length) {
+      chunkPage.value += 1
+      verseList.value.push(...verseChunk.value[chunkPage.value - 1])
+    }
+  },
+  {
+    root: null,
+    threshold: 0,
+    rootMargin: '-200px 0px 0px 0px',
+  },
+)
+
+// Get detail surah
+const { data: dataDetail } = useAsyncData<ISurah>(
+  'surahDetail',
+  () => $fetch(`${ALQURAN_API}/${route.params.id}`),
+  {
+    transform: (data: any) => {
+      const returnData = {
+        ...data.data,
+        audioFull: Object.values(data.data.audioFull).find((audio: any) =>
+          audio.includes('Misyari'),
+        ),
+      }
+      return returnData
+    },
+  },
+)
+
+// Get data tafsir
+const { data: dataTafsir } = useLazyFetch<ITafsir[]>(`/${route.params.id}`, {
+  baseURL: TAFSIR_API,
+  server: false,
+  transform: (data: any) => data.data.tafsir,
+})
+
+const setDataChunks = (data: IVerse[]) => {
+  chunkPage.value = 1
+  masterVerseList.value = data
+
+  // Split array into chunks
+  for (let i = 0; i < masterVerseList.value.length; i += 20) {
+    const chunk = masterVerseList.value.slice(i, i + 20)
+    verseChunk.value.push(chunk)
+  }
+
+  verseList.value = verseChunk.value[0]
+  finishSetDataChunk.value = true
+}
+
+// Open modal tafsir
+const handleOpenModalTafsir = (index: number) => {
+  if (dataTafsir.value) {
+    tafsirSelected.value = dataTafsir.value[index]
+    showModalTafsir.value = true
+  }
+}
+
+// Close modal tafsir
+const handleCloseModalTafsir = () => {
+  showModalTafsir.value = false
+  setTimeout(() => {
+    tafsirSelected.value = null
+  }, 400)
+}
+
+// Scroll to top of page
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
+}
+
+// Go to previous / next surah
+const goToSurah = (surah: IBeforeNextSurah) => {
+  router.push(`/al-quran/${surah.nomor}`)
+}
+
+onMounted(() => {
+  setTimeout(() => {
+    if (dataDetail.value) setDataChunks(dataDetail.value!.ayat!)
+  }, 500)
+})
+
+useSeoMeta({
+  title: () => `Surah ${dataDetail.value?.namaLatin} | Islam App`,
+  description: () => `Detail surah ${dataDetail.value?.namaLatin}`,
+})
+</script>
+
+<template>
+  <div>
+    <div class="relative">
+      <!-- Header detail surah for show surah name & list surah -->
+      <HeaderDetailSurah
+        v-if="route.name === 'al-quran-id' && dataDetail"
+        @show-detail="showModalDetail = true"
+        @show-list="showListSurah = true"
+      />
+
+      <div class="container pt-8">
+        <!-- Bismillah images -->
+        <img
+          src="/images/bismillah.svg"
+          class="mx-auto mb-10 h-auto w-48 md:w-52 lg:w-56 dark:brightness-0 dark:invert-[1]"
+          alt="bismillah-images"
+        />
+
+        <!-- List Ayat -->
+        <SkeletonVerse v-if="!finishSetDataChunk" />
+
+        <div v-else>
+          <div class="space-y-5">
+            <QuranVerseList
+              v-for="(verse, index) in verseList"
+              :key="`verse-${verse.nomorAyat}`"
+              :surah-name="dataDetail?.namaLatin"
+              :surah-number="dataDetail?.nomor"
+              :verse="verse"
+              :index="index"
+              @open-tafsir="handleOpenModalTafsir"
+            />
+          </div>
+          <div ref="bottomVerseList" />
+
+          <!-- Button prev & next surah -->
+          <div
+            v-if="dataDetail"
+            class="mt-12 flex items-center justify-center space-x-3 md:mt-20"
+          >
+            <!-- Previous surah -->
+            <button
+              v-if="dataDetail.suratSebelumnya"
+              class="flex items-center space-x-2 rounded-md border border-gray-300/70 px-2 py-1.5 text-sm text-smoke-1 sm:px-3 sm:py-2 dark:border-gray-700 dark:bg-background-dark-soft dark:text-smoke-2"
+              @click="goToSurah(dataDetail.suratSebelumnya as IBeforeNextSurah)"
+            >
+              <Icon
+                name="heroicons:chevron-left-solid"
+                class="text-base"
+              />
+              <span class="hidden sm:block">Surah sebelumnya</span>
+              <span class="block sm:hidden">Sebelumnya</span>
+            </button>
+
+            <!-- Back to top -->
+            <button
+              class="flex items-center rounded-md border border-gray-300/70 px-2 py-1.5 text-sm text-smoke-1 sm:px-3 sm:py-2 dark:border-gray-700 dark:bg-background-dark-soft dark:text-smoke-2"
+              @click="scrollToTop"
+            >
+              <span class="hidden sm:block">Kembali ke atas</span>
+              <span class="block sm:hidden">Ke atas</span>
+            </button>
+
+            <!-- Next surah -->
+            <button
+              v-if="dataDetail.suratSelanjutnya"
+              class="flex items-center space-x-2 rounded-md border border-gray-300/70 px-2 py-1.5 text-sm text-smoke-1 sm:px-3 sm:py-2 dark:border-gray-700 dark:bg-background-dark-soft dark:text-smoke-2"
+              @click="goToSurah(dataDetail.suratSelanjutnya as IBeforeNextSurah)"
+            >
+              <span class="hidden sm:block">Surah berikutnya</span>
+              <span class="block sm:hidden">Berikutnya</span>
+              <Icon
+                name="heroicons:chevron-right-solid"
+                class="text-base"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- List Surah -->
+    <USlideover
+      v-model="showListSurah"
+      side="left"
+      :ui="{
+        background:
+          'bg-background-light dark:bg-background-dark dark:border dark:border-slate-700/50',
+        width: 'w-screen md:max-w-md max-w-xs',
+        overlay: {
+          background: 'bg-gray-200/50 dark:bg-background-dark/50',
+        },
+      }"
+    >
+      <SlideSurah
+        v-if="showListSurah"
+        :detail-surah="dataDetail"
+        @close-slide="showListSurah = false"
+      />
+    </USlideover>
+
+    <!-- Modal Detail -->
+    <UModal
+      v-model="showModalDetail"
+      :ui="{
+        rounded: 'rounded-xl',
+        background:
+          'bg-background-light dark:bg-background-dark dark:border dark:border-slate-700/50',
+        width: 'sm:max-w-[80vw] md:max-w-[70vw]',
+        overlay: {
+          background: 'bg-gray-200/50 dark:bg-background-dark/50 backdrop-blur',
+        },
+      }"
+    >
+      <ModalDetailSurah
+        v-if="showModalDetail"
+        :description="dataDetail?.deskripsi"
+        @close-modal="showModalDetail = false"
+      />
+    </UModal>
+
+    <!-- Modal Tafsir -->
+    <UModal
+      v-model="showModalTafsir"
+      prevent-close
+      :ui="{
+        rounded: 'rounded-xl',
+        background:
+          'bg-background-light dark:bg-background-dark dark:border dark:border-slate-700/50',
+        width: 'sm:max-w-[80vw] md:max-w-[70vw]',
+        overlay: {
+          background: 'bg-gray-200/50 dark:bg-background-dark/50 backdrop-blur',
+        },
+      }"
+    >
+      <ModalTafsir
+        v-if="showModalTafsir"
+        :tafsir="tafsirSelected?.teks"
+        @close-modal="handleCloseModalTafsir"
+      />
+    </UModal>
+  </div>
+</template>
