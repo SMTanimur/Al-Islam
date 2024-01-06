@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { IBeforeNextSurah, ISurah, IVerse } from '~/models/ISurah';
+
 // Interfaces
-import type { ISurah, IVerse, IBeforeNextSurah } from 'models/ISurah'
+
 interface ITafsir {
   ayat: number
   teks: string
@@ -64,6 +66,8 @@ const { data: dataTafsir } = useLazyFetch<ITafsir[]>(`/${route.params.id}`, {
   server: false,
   transform: (data: any) => data.data.tafsir,
 })
+
+console.log(dataTafsir,'data')
 
 const setDataChunks = (data: IVerse[]) => {
   chunkPage.value = 1

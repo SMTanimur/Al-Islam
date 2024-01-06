@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import type { ISurah } from '~/models/ISurah';
+
 // Interfaces
-import type { ISurah } from 'models/ISurah'
+
 
 // Props
 defineProps({
@@ -32,6 +34,7 @@ const { data: surah, pending: pendingFetch } = useFetch<ISurah[]>(ALQURAN_API, {
   },
 })
 
+console.log(surah,'surah')
 // List surah
 const surahList = computed((): ISurah[] => {
   const dataSurah: ISurah[] = surah.value!
@@ -40,7 +43,7 @@ const surahList = computed((): ISurah[] => {
     surah.namaLatin.toLowerCase().includes(search.value.toLowerCase()),
   )
 })
-
+console.log(surahList,"surahList")
 // Handle select surah
 const handleSelectSurah = (id: number) => {
   emits('close-slide')

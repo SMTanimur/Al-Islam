@@ -16,7 +16,7 @@ const emits = defineEmits<{
 
 const toggleFavorite = () => {
   const dataFavorite: ISurah[] = useLocalStorage('surah-favorite', []).value
-
+  
   if (dataFavorite.length > 0) {
     const index = dataFavorite.findIndex(
       (data) => data.namaLatin.toLowerCase() === props.surah.namaLatin.toLowerCase(),
@@ -36,6 +36,7 @@ const toggleFavorite = () => {
 
   emits('refresh-data')
 }
+
 </script>
 
 <template>

@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import type { ISurah } from '~/models/ISurah';
+
 // Interfaces
-import type { ISurah } from '~models/ISurah'
+
 
 const nuxtApp = useNuxtApp()
 
@@ -25,6 +27,7 @@ const surahList = computed((): ISurah[] => {
     surah.namaLatin.toLowerCase().includes(search.value.toLowerCase()),
   )
 })
+console.log(surahList,'master')
 
 // Set data list surah & favorite
 const setDataSurahAndFavorites = () => {
@@ -55,7 +58,7 @@ watchEffect(() => {
 
 // Meta
 useHead({
-  title: 'Al-Quran | Islam App',
+  title: 'Al-Islam | Islam App',
 })
 </script>
 

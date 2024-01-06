@@ -12,7 +12,7 @@ const emits = defineEmits(['show-detail', 'show-list'])
 
 // Surah detail
 const { data: surahDetail } = useNuxtData<ISurah>('surahDetail')
-
+console.log(surahDetail,'detal')
 // Play surah audio
 const playSurah = () => {
   const data = {
@@ -66,7 +66,7 @@ const playSurah = () => {
             name="heroicons:play-solid"
             class="mr-1 text-base text-rose-700 md:text-lg dark:text-rose-500"
           />
-          Putar
+          Spin
         </div>
       </div>
     </div>
